@@ -1,0 +1,173 @@
+package edu.utils;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.struts2.ServletActionContext;
+import org.apache.struts2.dispatcher.SessionMap;
+
+import edu.action.common.BaseAction;
+import edu.dao.GroupDAO;
+import edu.dao.UserDAO;
+import edu.dao.application.ApplicationDAO;
+import edu.dao.board.ApplicationStatBoardDAO;
+import edu.dao.college.AdmissionDAO;
+import edu.dao.interBoard.ApplicationStatBoardInterBoardDAO;
+import edu.dto.GroupDTO;
+import edu.dto.UserDTO;
+import edu.dto.board.BoardDTO;
+import edu.dto.board.DashBoardBoardDTO;
+import edu.dto.college.CollegeCourseDTO;
+import edu.dto.college.CollegeDTO;
+import edu.dto.interBoard.DashBoardBoardInterBoardDTO;
+import edu.dto.interBoard.InterBoardDTO;
+
+public class Login extends BaseAction {
+
+	public String execute()
+	{	
+			//generateGroupArray();
+			//getGroupMapAsArray();
+			String successResult="";
+			String url = request.getServletPath();
+			if(url.contains("college")){
+				return "invalid";
+			} else if(url.contains("board")){
+				return "invalid";
+			} 
+			else if(url.contains("admin")){
+				return "invalid";
+			}
+			else if(url.contains("applicant")){
+				return "invalid";
+			}
+			else if(url.equalsIgnoreCase("/login.action") || url.equalsIgnoreCase("/login")|| url.equalsIgnoreCase("/loginBoard")|| url.equalsIgnoreCase("/loginBoard.action")){
+				if(session.get("role")==null){
+					((SessionMap<String,Object>)session).invalidate();
+					return SUCCESS;
+				}
+				else {
+					String role = session.get("role").toString();	
+					
+					if(role.equalsIgnoreCase("badmin")){
+						BoardDTO userDto = (BoardDTO)session.get("user");
+						session.put("user", userDto);
+						session.put("role", "board");
+						ApplicationStatBoardDAO dashBoardDAO = new ApplicationStatBoardDAO();
+						DashBoardBoardDTO dashBoardDTO=dashBoardDAO.getBoardDashBoard(userDto.getBoardId());
+
+						
+						request.setAttribute("totalApplicant",dashBoardDTO.getTotalApplicant());
+						request.setAttribute("totalApplication",dashBoardDTO.getTotalApplication());
+					    request.setAttribute("webApplicant",dashBoardDTO.getWebApplicant());
+					    request.setAttribute("webApplication",dashBoardDTO.getWebApplication());
+					    request.setAttribute("smsApplicant",dashBoardDTO.getSmsApplicant());
+					    request.setAttribute("smsApplication",dashBoardDTO.getSmsApplication());
+					    request.setAttribute("collegeReceived",dashBoardDTO.getCollegeAdmReceiveCount());
+					    request.setAttribute("collegeNotReceived",dashBoardDTO.getCollegeAdmNotReceiveCount());
+						successResult = "badmin";
+					}
+					
+					else if(role.equalsIgnoreCase("board")){
+						BoardDTO userDto = (BoardDTO)session.get("user");
+					    request.setAttribute("totalApplicant",0);
+						request.setAttribute("totalApplication",0);
+					    request.setAttribute("webApplicant",0);
+					    request.setAttribute("webApplication",0);
+					    request.setAttribute("smsApplicant",0);
+					    request.setAttribute("smsApplication",0);
+					    request.setAttribute("collegeReceived",0);
+					    request.setAttribute("collegeNotReceived",0);
+						successResult = "board";
+					} 
+					else if(role.equalsIgnoreCase("boardadmin")){
+						BoardDTO userDto = (BoardDTO)session.get("user");
+						successResult = "boardadmin";
+					} 
+					else if(role.equalsIgnoreCase("boardentry")){
+						BoardDTO userDto = (BoardDTO)session.get("user");
+						successResult = "boardentry";
+					} 
+					else if(role.equalsIgnoreCase("college")){
+						CollegeDTO userDto = (CollegeDTO)session.get("user");
+						AdmissionDAO svgLoadDAO = new AdmissionDAO();
+						List<CollegeCourseDTO> shiftList = svgLoadDAO.getShiftList(userDto.getEiin());
+						request.setAttribute("shiftList", shiftList);
+						List<CollegeCourseDTO> versionList = svgLoadDAO.getVersionList(userDto.getEiin());
+						request.setAttribute("versionList", versionList);
+						List<CollegeCourseDTO> groupList = svgLoadDAO.getGroupList(userDto.getEiin());
+						request.setAttribute("groupList", groupList);
+						successResult = "college";
+					} 
+					else if(role.equalsIgnoreCase("admin")){
+						InterBoardDTO userDto = (InterBoardDTO)session.get("user");
+						successResult = "admin";
+					}
+					else {
+						((SessionMap<String,Object>)session).invalidate();
+						successResult = "success";
+					}
+				}
+				return successResult;
+			} else {
+				((SessionMap<String,Object>)session).invalidate();
+				return "failure";
+			}
+	}	
+	
+	public String applicantLogin()
+	{
+		String successResult="";
+		if(session.get("errormessage")!=null)
+		{
+			request.setAttribute("errormessage",session.get("errormessage"));
+			session.put("errormessage",null);
+		}
+		if(session.get("role")==null)
+			return SUCCESS;
+		else {
+			String role = session.get("role").toString();
+		  }
+		return SUCCESS;
+	}
+	
+	public void generateGroupArray(){
+
+			GroupDAO gdao=new GroupDAO();
+			ArrayList<GroupDTO> groupList=gdao.getAllGroup("SSC");
+			HashMap<String,String> groupMap=new HashMap<String, String>();
+			for(int i=0;i<groupList.size();i++){
+				System.out.println(i);
+				if(i==35)
+				{
+					System.out.println("abc");
+				}
+				groupMap.put(groupList.get(i).getGroup_id(), groupList.get(i).getGroup_name());
+			}
+			String totalString="";
+			for(int i=0;i<=50;i++){
+				if(groupMap.get(String.valueOf(i))==null)
+					totalString+="\"\",";
+				else
+					totalString+="\""+groupMap.get(String.valueOf(i))+"\",";	
+			}
+			System.out.println(totalString);
+			
+		
+	}
+	
+	public void getGroupMapAsArray(){
+
+		GroupDAO gdao=new GroupDAO();
+		Set<String> groupMapSet=gdao.getGroupMapSet();
+		String totalString="";
+		
+		for (String s : groupMapSet) {
+			totalString+="\""+s+"\",";
+		}
+		System.out.println(totalString);
+	}	
+	
+}
